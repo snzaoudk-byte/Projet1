@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mini E-Voting</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0d0f14; --surface: #151820; --surface2: #1c202c;
+      --border: #2a2f3e; --accent: #4f8ef7; --accent2: #7c5cfc;
+      --success: #22c55e; --danger: #ef4444; --text: #e8eaf0; --muted: #6b7280;
+    }
+    body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    header {
+      background: linear-gradient(135deg, #0d1526 0%, #131026 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 24px 40px; display: flex; align-items: center; gap: 16px;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .logo { font-family: 'Syne', sans-serif; font-size: 1.5rem; font-weight: 800; background: linear-gradient(90deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .subtitle { font-size: 0.85rem; color: var(--muted); margin-left: auto; }
+    .container { max-width: 1100px; margin: 0 auto; padding: 36px 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .full-width { grid-column: 1 / -1; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 28px; animation: fadeUp 0.4s ease both; }
+    .card:nth-child(2) { animation-delay:.1s } .card:nth-child(3) { animation-delay:.2s } .card:nth-child(4) { animation-delay:.3s } .card:nth-child(5) { animation-delay:.4s }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+    .card-title { font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 700; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+    .icon { width: 32px; height: 32px; background: linear-gradient(135deg, var(--accent), var(--accent2)); border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+    label { display: block; font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; margin-top: 16px; }
+    label:first-of-type { margin-top: 0; }
+    input, select { width: 100%; background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 11px 14px; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 0.92rem; outline: none; transition: border-color 0.2s; }
+    input:focus, select:focus { border-color: var(--accent); }
+    .btn { margin-top: 20px; width: 100%; padding: 13px; border: none; border-radius: 10px; font-family: 'Syne', sans-serif; font-size: 0.9rem; font-weight: 700; cursor: pointer; transition: transform 0.15s, opacity 0.15s; }
+    .btn:hover { transform: translateY(-2px); opacity: 0.9; }
+    .btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: white; }
+    .btn-success { background: linear-gradient(135deg, #16a34a, #22c55e); color: white; }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .btn-outline:hover { border-color: var(--accent); }
+    .candidats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin-bottom: 4px; }
+    .candidat-card { background: var(--surface2); border: 2px solid var(--border); border-radius: 12px; padding: 18px 12px; text-align: center; cursor: pointer; transition: all 0.2s; user-select: none; }
+    .candidat-card:hover { border-color: var(--accent); transform: translateY(-3px); }
+    .candidat-card.selected { border-color: var(--accent); background: rgba(79,142,247,0.1); box-shadow: 0 0 0 3px rgba(79,142,247,0.2); }
+    .avatar { width: 46px; height: 46px; border-radius: 50%; margin: 0 auto 10px; background: linear-gradient(135deg, var(--accent), var(--accent2)); display: flex; align-items: center; justify-content: center; font-size: 1.3rem; }
+    .c-nom { font-family: 'Syne', sans-serif; font-size: 0.88rem; font-weight: 700; }
+    .c-id { font-size: 0.72rem; color: var(--muted); margin-top: 4px; }
+    .message { margin-top: 14px; padding: 11px 15px; border-radius: 10px; font-size: 0.87rem; font-weight: 500; display: none; }
+    .message.success { background: rgba(34,197,94,0.15); color: var(--success); border: 1px solid rgba(34,197,94,0.3); display: block; }
+    .message.error   { background: rgba(239,68,68,0.15); color: var(--danger); border: 1px solid rgba(239,68,68,0.3); display: block; }
+    .result-item { margin-bottom: 18px; }
+    .result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 7px; }
+    .result-nom { font-family: 'Syne', sans-serif; font-size: 0.95rem; font-weight: 700; }
+    .result-count { font-size: 0.85rem; color: var(--accent); font-weight: 600; }
+    .progress-bar { height: 8px; background: var(--surface2); border-radius: 99px; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--accent), var(--accent2)); transition: width 0.8s cubic-bezier(.4,0,.2,1); width: 0%; }
+    .result-electeurs { margin-top: 6px; font-size: 0.75rem; color: var(--muted); }
+    .badge { display: inline-block; background: var(--surface2); border: 1px solid var(--border); border-radius: 99px; padding: 2px 9px; margin: 2px 3px 2px 0; font-size: 0.72rem; }
+    .empty { color: var(--muted); font-size: 0.88rem; text-align: center; padding: 24px; }
+    .voter-row { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--border); font-size: 0.88rem; }
+    .voter-row:last-child { border-bottom: none; }
+    .voter-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .voted { background: var(--success); } .notvoted { background: var(--muted); }
+    .voter-name { flex: 1; font-weight: 500; }
+    .voter-id { font-size: 0.75rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 2px 8px; color: var(--accent); font-weight: 600; margin-right: 8px; }
+    .voter-status { font-size: 0.72rem; padding: 3px 9px; border-radius: 99px; }
+    .voted-tag { background: rgba(34,197,94,0.15); color: var(--success); }
+    .notvoted-tag { background: var(--surface2); color: var(--muted); }
+    @media(max-width: 700px) { .container { grid-template-columns: 1fr; } .full-width { grid-column: 1; } }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🗳️ E-Voting</div>
+  <div class="subtitle">Système de vote électronique</div>
+</header>
+
+<div class="container">
+
+  <!-- ── AJOUTER UN ÉLECTEUR ── -->
+  <div class="card">
+    <div class="card-title"><div class="icon">➕</div> Ajouter un électeur</div>
+
+    <label>Nom complet</label>
+    <input type="text" id="reg-nom" placeholder="Ex: Fatou Diallo">
+
+    <label>Adresse email</label>
+    <input type="email" id="reg-email" placeholder="Ex: fatou@email.com">
+
+    <label>Mot de passe</label>
+    <input type="password" id="reg-mdp" placeholder="••••••••">
+
+    <button class="btn btn-primary" onclick="ajouterElecteur()">Enregistrer l'électeur</button>
+    <div id="reg-msg" class="message"></div>
+  </div>
+
+  <!-- ── VOTER ── -->
+  <div class="card">
+    <div class="card-title"><div class="icon">✔</div> Voter</div>
+
+    <label>ID Électeur</label>
+    <input type="number" id="electeur_id" placeholder="Ex: 1">
+
+    <label>Choisir un candidat</label>
+    <div class="candidats-grid" id="candidats-grid">
+      <div class="empty">Chargement…</div>
+    </div>
+
+    <button class="btn btn-success" onclick="voter()">Confirmer mon vote</button>
+    <div id="vote-msg" class="message"></div>
+  </div>
+
+  <!-- ── RÉSULTATS ── -->
+  <div class="card full-width">
+    <div class="card-title"><div class="icon">📊</div> Résultats en direct</div>
+    <div id="resultats-container"><div class="empty">Chargement…</div></div>
+    <button class="btn btn-outline" onclick="chargerResultats()" style="margin-top:16px">↻ Actualiser</button>
+  </div>
+
+  <!-- ── ÉLECTEURS ── -->
+  <div class="card full-width">
+    <div class="card-title"><div class="icon">👥</div> Liste des électeurs</div>
+    <div id="voters-list"><div class="empty">Chargement…</div></div>
+    <button class="btn btn-outline" onclick="chargerElecteurs()" style="margin-top:16px">↻ Actualiser</button>
+  </div>
+
+</div>
+
+<script>
+  let candidatSelectionne = null;
+
+  // ── Ajouter un électeur ────────────────────────────
+  async function ajouterElecteur() {
+    const nom   = document.getElementById('reg-nom').value.trim();
+    const email = document.getElementById('reg-email').value.trim();
+    const mdp   = document.getElementById('reg-mdp').value;
+    const msg   = document.getElementById('reg-msg');
+
+    if (!nom || !email || !mdp) {
+      msg.className = 'message error';
+      msg.textContent = '⚠️ Veuillez remplir tous les champs.';
+      return;
+    }
+
+    const res = await fetch('/electeurs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nom, email, mot_de_passe: mdp })
+    });
+    const data = await res.json();
+
+    if (res.ok) {
+      msg.className = 'message success';
+      msg.textContent = `✅ Électeur "${data.nom}" ajouté ! Son ID est : ${data.id}`;
+      // Vider le formulaire
+      document.getElementById('reg-nom').value = '';
+      document.getElementById('reg-email').value = '';
+      document.getElementById('reg-mdp').value = '';
+      chargerElecteurs();
+    } else {
+      msg.className = 'message error';
+      msg.textContent = '❌ ' + data.erreur;
+    }
+  }
+
+  // ── Charger les candidats ──────────────────────────
+  async function chargerCandidats() {
+    const res = await fetch('/candidats');
+    const candidats = await res.json();
+    const grid = document.getElementById('candidats-grid');
+    if (!candidats.length) { grid.innerHTML = '<div class="empty">Aucun candidat</div>'; return; }
+    const emojis = ['🧑','👩','👨','🧑‍💼','👩‍💼','👨‍💼','🧑‍🎓','👩‍🎓'];
+    grid.innerHTML = candidats.map((c, i) => `
+      <div class="candidat-card" onclick="selectionner(${c.id}, this)">
+        <div class="avatar">${emojis[i % emojis.length]}</div>
+        <div class="c-nom">${c.nom}</div>
+        <div class="c-id">ID : ${c.id}</div>
+      </div>`).join('');
+  }
+
+  function selectionner(id, el) {
+    document.querySelectorAll('.candidat-card').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+    candidatSelectionne = id;
+  }
+
+  // ── Voter ──────────────────────────────────────────
+  async function voter() {
+    const electeur_id = parseInt(document.getElementById('electeur_id').value);
+    const msg = document.getElementById('vote-msg');
+    if (!electeur_id) { msg.className='message error'; msg.textContent='⚠️ Entrez votre ID électeur.'; return; }
+    if (!candidatSelectionne) { msg.className='message error'; msg.textContent='⚠️ Sélectionnez un candidat.'; return; }
+
+    const res = await fetch('/vote', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ electeur_id, candidat_id: candidatSelectionne })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      msg.className = 'message success';
+      msg.textContent = '✅ ' + data.message;
+      chargerResultats(); chargerElecteurs();
+    } else {
+      msg.className = 'message error';
+      msg.textContent = '❌ ' + data.erreur;
+    }
+  }
+
+  // ── Résultats ──────────────────────────────────────
+  async function chargerResultats() {
+    const res = await fetch('/resultats');
+    const data = await res.json();
+    const c = document.getElementById('resultats-container');
+    if (!data.length) { c.innerHTML = '<div class="empty">Aucun résultat</div>'; return; }
+    const maxV = Math.max(...data.map(d => d.votes), 1);
+    c.innerHTML = data.map((r, i) => {
+      const pct = Math.round((r.votes / maxV) * 100);
+      const badges = r.electeurs.length
+        ? r.electeurs.map(e => `<span class="badge">${e}</span>`).join('')
+        : '<em style="color:var(--muted)">Aucun vote</em>';
+      return `<div class="result-item">
+        <div class="result-header">
+          <span class="result-nom">${i===0&&r.votes>0?'🥇 ':''}${r.candidat}</span>
+          <span class="result-count">${r.votes} vote${r.votes!==1?'s':''}</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+        <div class="result-electeurs">${badges}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // ── Électeurs ──────────────────────────────────────
+  async function chargerElecteurs() {
+    const res = await fetch('/electeurs');
+    const data = await res.json();
+    const c = document.getElementById('voters-list');
+    if (!data.length) { c.innerHTML = '<div class="empty">Aucun électeur enregistré</div>'; return; }
+    c.innerHTML = data.map(e => `
+      <div class="voter-row">
+        <div class="voter-dot ${e.has_voted?'voted':'notvoted'}"></div>
+        <span class="voter-id">ID : ${e.id}</span>
+        <div class="voter-name">${e.nom} <span style="color:var(--muted);font-size:0.8rem">(${e.email})</span></div>
+        <span class="voter-status ${e.has_voted?'voted-tag':'notvoted-tag'}">${e.has_voted?'✔ A voté':'Pas encore voté'}</span>
+      </div>`).join('');
+  }
+
+  chargerCandidats();
+  chargerResultats();
+  chargerElecteurs();
+  setInterval(() => { chargerResultats(); chargerElecteurs(); }, 10000);
+</script>
+</body>
+</html>
