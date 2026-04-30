@@ -7,11 +7,6 @@ from functools import wraps
 
 main = Blueprint('main', __name__)
 
-
-# ============================================================
-# DÉCORATEUR — Vérification du token JWT
-# ============================================================
-
 def token_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -30,11 +25,11 @@ def token_required(f):
                 current_app.config['SECRET_KEY'],
                 algorithms=["HS256"]
             )
-            # ✅ Récupérer l'électeur connecté depuis le token
+            
             electeur = Electeur.query.get(payload['user_id'])
             if not electeur:
                 return jsonify({"erreur": "Utilisateur introuvable"}), 401
-            request.current_user = electeur  # disponible dans toutes les routes
+            request.current_user = electeur  
 
         except jwt.ExpiredSignatureError:
             return jsonify({"erreur": "Token expiré, reconnectez-vous"}), 401
@@ -45,9 +40,6 @@ def token_required(f):
     return decorated
 
 
-# ============================================================
-# AUTHENTIFICATION
-# ============================================================
 
 @main.route('/login', methods=['POST'])
 def login():
@@ -56,13 +48,13 @@ def login():
     if not data or 'email' not in data or 'mot_de_passe' not in data:
         return jsonify({"erreur": "Email et mot_de_passe obligatoires"}), 400
 
-    # ✅ Chercher l'électeur dans la base par email
+    
     electeur = Electeur.query.filter_by(email=data['email']).first()
 
     if not electeur or not electeur.check_password(data['mot_de_passe']):
         return jsonify({"erreur": "Email ou mot de passe incorrect"}), 401
 
-    # ✅ Générer un token unique pour cet électeur
+   
     token = jwt.encode(
         {
             "user_id": electeur.id,
@@ -85,21 +77,14 @@ def login():
     }), 200
 
 
-# ============================================================
-# PAGE D'ACCUEIL
-# ============================================================
-
 @main.route('/')
 def index():
     return render_template('index.html')
 
 
-# ============================================================
-# ÉLECTIONS
-# ============================================================
 
 @main.route('/elections', methods=['POST'])
-@token_required  # ✅ protégé
+@token_required 
 def create_election():
     data = request.json
     election = Election(titre=data['titre'])
@@ -114,9 +99,6 @@ def list_elections():
     return jsonify([{"id": e.id, "titre": e.titre, "ouverte": e.ouverte} for e in elections])
 
 
-# ============================================================
-# ÉLECTEURS
-# ============================================================
 
 @main.route('/electeurs', methods=['POST'])
 def create_electeur():
@@ -132,7 +114,7 @@ def create_electeur():
 
 
 @main.route('/electeurs', methods=['GET'])
-@token_required  # ✅ protégé
+@token_required  
 def list_electeurs():
     electeurs = Electeur.query.all()
     return jsonify([
@@ -141,12 +123,9 @@ def list_electeurs():
     ])
 
 
-# ============================================================
-# CANDIDATS
-# ============================================================
 
 @main.route('/candidats', methods=['POST'])
-@token_required  # ✅ protégé
+@token_required  
 def create_candidat():
     data = request.json
     candidat = Candidat(nom=data['nom'], election_id=data.get('election_id'))
@@ -161,16 +140,13 @@ def list_candidats():
     return jsonify([{"id": c.id, "nom": c.nom, "election_id": c.election_id} for c in candidats])
 
 
-# ============================================================
-# VOTE
-# ============================================================
 
 @main.route('/vote', methods=['POST'])
 @token_required
 def voter():
     data = request.json
 
-    # ✅ L'électeur est automatiquement celui connecté via le token
+    
     electeur = request.current_user
 
     if electeur.has_voted:
@@ -187,12 +163,8 @@ def voter():
     return jsonify({"message": f"{electeur.nom} a voté pour {candidat.nom} "}), 201
 
 
-# ============================================================
-# RÉSULTATS
-# ============================================================
-
 @main.route('/resultats', methods=['GET'])
-@token_required  # ✅ protégé
+@token_required  
 def resultats():
     candidats = Candidat.query.all()
     data = []
