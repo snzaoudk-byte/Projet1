@@ -1,0 +1,5 @@
+$kind: collection
+name: Système de Vote API
+variables:
+  - key: baseUrl
+    value: 'http://localhost:5000'
